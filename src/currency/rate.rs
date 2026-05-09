@@ -1,5 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 #[allow(unused)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Rate {
     base_code: String,
     pub currency_code: String,
