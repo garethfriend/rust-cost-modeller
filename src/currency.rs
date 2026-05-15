@@ -1,10 +1,10 @@
+use crate::errors::InvalidExchangeRateError;
 use regex;
 use reqwest::blocking;
 use serde_json;
 use std::{
     collections::HashMap,
     error::Error,
-    fmt,
     fs::OpenOptions,
     io::{Read, Write},
 };
@@ -12,17 +12,6 @@ use std::{
 pub const CURRENCY_API_URL: &str = "https://open.exchangerate-api.com/v6/latest/";
 pub const API_RATES_CACHE: &str = "rates_cache.txt";
 pub const USER_RATES: &str = "user_rates.txt";
-
-#[derive(Debug)]
-struct InvalidExchangeRateError;
-
-impl Error for InvalidExchangeRateError {}
-
-impl fmt::Display for InvalidExchangeRateError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Exchange rates must be positive and finite.")
-    }
-}
 
 fn find_currency_code(code: &str) -> Option<String> {
     let re = regex::Regex::new(r"[A-Z]{3}").unwrap();
@@ -104,12 +93,14 @@ fn save_user_rate(
         find_currency_code(base_code).ok_or("No currency code found in base_code string.")?;
     let to_code_ =
         find_currency_code(to_code).ok_or("No currency code found in to_code string.")?;
-    if rate.is_finite() & rate.is_sign_positive() {
-        let mut output = HashMap::new();
-        output.insert(format!("{base_code_}_{to_code_}"), rate);
-        Ok(output)
-    } else {
-        Err(Box::new(InvalidExchangeRateError))
+    match rate {
+        rate if rate.is_infinite() => Err(Box::new(InvalidExchangeRateError::InfiniteRate)),
+        rate if rate.is_sign_negative() => Err(Box::new(InvalidExchangeRateError::NegativeRate)),
+        _ => {
+            let mut output = HashMap::new();
+            output.insert(format!("{base_code_}_{to_code_}"), rate);
+            Ok(output)
+        }
     }
 }
 

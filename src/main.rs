@@ -1,4 +1,6 @@
 mod currency;
+mod errors;
+mod ingredients;
 use std::collections::HashMap;
 
 fn main() {
